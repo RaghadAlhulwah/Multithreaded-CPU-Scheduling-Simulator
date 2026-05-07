@@ -21,9 +21,8 @@ public class OperatingSystemProject {
         // ── Wait for Thread 1 to finish reading the file ──
         thread1.join();
  
-        // ── [Member 3] Let user choose scheduling algorithm and run simulation ──
-        // Scheduler scheduler = new Scheduler(SharedResources.readyQueue);
-        // scheduler.chooseAndRun();
+      CPUScheduler.showMenuAndRun(Sharedresources.readyQueue);
+
  
         // ── [Member 4] Print output: Gantt chart, table, metrics ──
         // OutputManager.printResults(...);
