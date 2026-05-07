@@ -1,379 +1,299 @@
-package CS227;
+package com.mycompany.operatingsystemproject;
 
 import java.util.*;
 
+/**
+ * CPUScheduler.java - Main Scheduling Logic
+ *
+ * Implements three CPU scheduling algorithms:
+ *   1. Shortest Job First (SJF)
+ *   2. Round Robin (RR)
+ *   3. Priority Scheduling (Non-Preemptive) with Starvation & Aging
+ *
+ * Author  : Member 3 - CPU Scheduler
+ * Course  : CSC 227 - Operating Systems
+ * Project : Multithreaded CPU Scheduling Simulator
+ */
 public class CPUScheduler {
 
-    private static final int TIME_QUANTUM = 5;
-    private static final int AGING_INTERVAL = 4;
+    // ── Constants from SharedResources (project spec) ──
+    private static final int TIME_QUANTUM         = Sharedresources.TIME_QUANTUM;         // 5 ms
+    private static final int AGING_INTERVAL       = Sharedresources.AGING_INTERVAL;       // 4 ms
+    private static final int STARVATION_MULT      = Sharedresources.STARVATION_MULTIPLIER; // 5
 
-    // ================= MENU =================
+    // =========================================================================
+    // MENU — Let user choose algorithm
+    // =========================================================================
 
-    public static void showMenuAndRun(ArrayList<PCB> readyQueue) {
+    public static void showMenuAndRun(ArrayList<ProcessControlBlock> readyQueue) {
 
         Scanner input = new Scanner(System.in);
 
         System.out.println("\n===== CPU Scheduling Simulator =====");
-
         System.out.println("1. Shortest Job First (SJF)");
         System.out.println("2. Round Robin (RR)");
-        System.out.println("3. Priority Scheduling");
-
-        System.out.print("Choose Algorithm: ");
+        System.out.println("3. Priority Scheduling (Non-Preemptive)");
+        System.out.print("Choose Algorithm (1-3): ");
 
         int choice = input.nextInt();
 
-        ArrayList<PCB> copy = copyProcesses(readyQueue);
+        // Work on a copy so the original readyQueue is not modified
+        ArrayList<ProcessControlBlock> copy = copyProcesses(readyQueue);
 
         switch (choice) {
-
-            case 1:
-                runSJF(copy);
-                break;
-
-            case 2:
-                runRoundRobin(copy);
-                break;
-
-            case 3:
-                runPriority(copy);
-                break;
-
-            default:
-                System.out.println("Invalid Choice");
+            case 1: runSJF(copy);         break;
+            case 2: runRoundRobin(copy);   break;
+            case 3: runPriority(copy);     break;
+            default: System.out.println("Invalid choice. Please enter 1, 2, or 3.");
         }
     }
 
-    // ================= SJF =================
+    // =========================================================================
+    // ALGORITHM 1 — Shortest Job First (SJF)
+    // =========================================================================
 
-    public static void runSJF(ArrayList<PCB> processes) {
+    public static void runSJF(ArrayList<ProcessControlBlock> processes) {
 
         System.out.println("\n===== SJF Scheduling =====");
 
+        // Sort by burst time; tie-break by arrival order
         processes.sort((p1, p2) -> {
-
             if (p1.getBurstTime() != p2.getBurstTime()) {
                 return p1.getBurstTime() - p2.getBurstTime();
             }
-
-            return p1.getArrivalOrder() - p2.getArrivalOrder();
+            return p1.getArrivalTime() - p2.getArrivalTime();
         });
 
         int currentTime = 0;
-
         ArrayList<GanttEntry> gantt = new ArrayList<>();
 
-        for (PCB p : processes) {
+        for (ProcessControlBlock p : processes) {
 
             p.setStartTime(currentTime);
-            p.setState("Running");
+            p.setState(ProcessControlBlock.State.RUNNING);
 
-            int startRemaining = p.getRemainingTime();
+            int startRemaining = p.getRemainingBurst();
 
+            // Simulate 1 ms steps
             for (int i = 0; i < p.getBurstTime(); i++) {
-
                 currentTime++;
-
-                p.setRemainingTime(
-                        p.getRemainingTime() - 1
-                );
+                p.decrementRemainingBurst();
             }
 
             p.setTerminationTime(currentTime);
+            p.setTurnaroundTime(p.getTerminationTime());                      // arrival = 0
+            p.setWaitingTime(p.getTurnaroundTime() - p.getBurstTime());
+            p.setState(ProcessControlBlock.State.TERMINATED);
 
-            p.setTurnaroundTime(
-                    p.getTerminationTime()
-            );
-
-            p.setWaitingTime(
-                    p.getTurnaroundTime()
-                            - p.getBurstTime()
-            );
-
-            p.setState("Terminated");
-
-            gantt.add(
-                    new GanttEntry(
-                            p.getProcessId(),
-                            p.getStartTime(),
-                            p.getTerminationTime(),
-                            startRemaining,
-                            0
-                    )
-            );
+            gantt.add(new GanttEntry(
+                    p.getProcessId(),
+                    p.getStartTime(),
+                    p.getTerminationTime(),
+                    startRemaining,
+                    0
+            ));
         }
 
         printGantt(gantt);
-
         printTable(processes);
-
         printAverages(processes);
     }
 
-    // ================= ROUND ROBIN =================
+    // =========================================================================
+    // ALGORITHM 2 — Round Robin (RR), quantum = 5 ms
+    // =========================================================================
 
-    public static void runRoundRobin(ArrayList<PCB> processes) {
+    public static void runRoundRobin(ArrayList<ProcessControlBlock> processes) {
 
-        System.out.println("\n===== Round Robin =====");
+        System.out.println("\n===== Round Robin (q=" + TIME_QUANTUM + " ms) =====");
 
-        Queue<PCB> queue = new LinkedList<>(processes);
-
+        Queue<ProcessControlBlock> queue = new LinkedList<>(processes);
         ArrayList<GanttEntry> gantt = new ArrayList<>();
 
         int currentTime = 0;
 
         while (!queue.isEmpty()) {
 
-            PCB p = queue.poll();
+            ProcessControlBlock p = queue.poll();
 
+            // Record first CPU assignment
             if (p.getStartTime() == -1) {
                 p.setStartTime(currentTime);
             }
 
-            p.setState("Running");
+            p.setState(ProcessControlBlock.State.RUNNING);
 
-            int start = currentTime;
+            int start         = currentTime;
+            int startRemaining = p.getRemainingBurst();
+            int executeTime   = Math.min(TIME_QUANTUM, p.getRemainingBurst());
 
-            int startRemaining = p.getRemainingTime();
-
-            int executedTime =
-                    Math.min(TIME_QUANTUM,
-                            p.getRemainingTime());
-
-            // simulate 1 ms
-
-            for (int i = 0; i < executedTime; i++) {
-
+            // Simulate 1 ms steps
+            for (int i = 0; i < executeTime; i++) {
                 currentTime++;
-
-                p.setRemainingTime(
-                        p.getRemainingTime() - 1
-                );
+                p.decrementRemainingBurst();
             }
 
-            gantt.add(
-                    new GanttEntry(
-                            p.getProcessId(),
-                            start,
-                            currentTime,
-                            startRemaining,
-                            p.getRemainingTime()
-                    )
-            );
+            gantt.add(new GanttEntry(
+                    p.getProcessId(),
+                    start,
+                    currentTime,
+                    startRemaining,
+                    p.getRemainingBurst()
+            ));
 
-            if (p.getRemainingTime() > 0) {
-
-                p.setState("Ready");
-
+            if (p.getRemainingBurst() > 0) {
+                // Not done yet — go back to queue
+                p.setState(ProcessControlBlock.State.READY);
                 queue.add(p);
 
             } else {
-
-                p.setState("Terminated");
-
+                // Process finished
+                p.setState(ProcessControlBlock.State.TERMINATED);
                 p.setTerminationTime(currentTime);
-
-                p.setTurnaroundTime(
-                        p.getTerminationTime()
-                );
-
-                p.setWaitingTime(
-                        p.getTurnaroundTime()
-                                - p.getBurstTime()
-                );
+                p.setTurnaroundTime(p.getTerminationTime());                  // arrival = 0
+                p.setWaitingTime(p.getTurnaroundTime() - p.getBurstTime());
             }
         }
 
         printGantt(gantt);
-
         printTable(processes);
-
         printAverages(processes);
     }
 
-    // ================= PRIORITY =================
+    // =========================================================================
+    // ALGORITHM 3 — Priority Scheduling (Non-Preemptive) + Starvation + Aging
+    // =========================================================================
 
-    public static void runPriority(ArrayList<PCB> processes) {
+    public static void runPriority(ArrayList<ProcessControlBlock> processes) {
 
-        System.out.println("\n===== Priority Scheduling =====");
+        System.out.println("\n===== Priority Scheduling (Non-Preemptive) =====");
 
-        ArrayList<PCB> ready =
-                new ArrayList<>(processes);
+        ArrayList<ProcessControlBlock> ready     = new ArrayList<>(processes);
+        ArrayList<ProcessControlBlock> completed = new ArrayList<>();
+        ArrayList<GanttEntry>          gantt     = new ArrayList<>();
 
-        ArrayList<PCB> completed =
-                new ArrayList<>();
-
-        ArrayList<GanttEntry> gantt =
-                new ArrayList<>();
-
-        ArrayList<Integer> starvedProcesses =
-                new ArrayList<>();
+        // Use shared starvation list from Sharedresources
+        Sharedresources.starvedProcesses.clear();
 
         int currentTime = 0;
 
         while (!ready.isEmpty()) {
 
-            applyStarvationAndAging(
-                    ready,
-                    currentTime,
-                    starvedProcesses
-            );
+            // Check starvation & apply aging before each dispatch
+            applyStarvationAndAging(ready, currentTime);
 
-            PCB selected =
-                    getHighestPriorityProcess(ready);
-
+            // Pick highest priority process (lowest number), tie-break by arrival
+            ProcessControlBlock selected = getHighestPriorityProcess(ready);
             ready.remove(selected);
 
             if (selected.getStartTime() == -1) {
                 selected.setStartTime(currentTime);
             }
 
-            selected.setState("Running");
+            selected.setState(ProcessControlBlock.State.RUNNING);
 
-            int start = currentTime;
+            int start          = currentTime;
+            int startRemaining = selected.getRemainingBurst();
 
-            int startRemaining =
-                    selected.getRemainingTime();
-
-            while (selected.getRemainingTime() > 0) {
-
+            // Run to completion (non-preemptive), apply aging every 4 ms
+            while (selected.getRemainingBurst() > 0) {
                 currentTime++;
+                selected.decrementRemainingBurst();
 
-                selected.setRemainingTime(
-                        selected.getRemainingTime() - 1
-                );
+                // Increment waiting time for all processes still in ready queue
+                for (ProcessControlBlock p : ready) {
+                    p.incrementWaitingTime();
+                }
 
+                // Apply aging check every AGING_INTERVAL ms
                 if (currentTime % AGING_INTERVAL == 0) {
-
-                    applyStarvationAndAging(
-                            ready,
-                            currentTime,
-                            starvedProcesses
-                    );
+                    applyStarvationAndAging(ready, currentTime);
                 }
             }
 
-            selected.setState("Terminated");
-
+            selected.setState(ProcessControlBlock.State.TERMINATED);
             selected.setTerminationTime(currentTime);
+            selected.setTurnaroundTime(selected.getTerminationTime());        // arrival = 0
+            // waitingTime already accumulated above; recalculate cleanly:
+            selected.setWaitingTime(selected.getTurnaroundTime() - selected.getBurstTime());
 
-            selected.setTurnaroundTime(
-                    selected.getTerminationTime()
-            );
-
-            selected.setWaitingTime(
-                    selected.getTurnaroundTime()
-                            - selected.getBurstTime()
-            );
-
-            gantt.add(
-                    new GanttEntry(
-                            selected.getProcessId(),
-                            start,
-                            currentTime,
-                            startRemaining,
-                            0
-                    )
-            );
+            gantt.add(new GanttEntry(
+                    selected.getProcessId(),
+                    start,
+                    currentTime,
+                    startRemaining,
+                    0
+            ));
 
             completed.add(selected);
         }
 
         printGantt(gantt);
-
         printTable(completed);
-
         printAverages(completed);
-
-        System.out.println("\n===== Starvation =====");
-
-        if (starvedProcesses.isEmpty()) {
-
-            System.out.println(
-                    "No starved processes."
-            );
-
-        } else {
-
-            for (int id : starvedProcesses) {
-
-                System.out.println(
-                        "Process P" + id
-                                + " suffered from starvation."
-                );
-            }
-        }
+        printStarvation();
     }
 
-    // ================= AGING =================
+    // =========================================================================
+    // STARVATION DETECTION + AGING
+    // =========================================================================
 
+    /**
+     * Detects starved processes and applies aging.
+     * A process is starved if it has waited more than (N × 5) ms in the ready queue,
+     * where N = number of processes currently in the ready queue.
+     * Aging: decrease priority number by 1 every 4 ms.
+     */
     private static void applyStarvationAndAging(
-
-            ArrayList<PCB> ready,
-            int currentTime,
-            ArrayList<Integer> starvedProcesses) {
+            ArrayList<ProcessControlBlock> ready,
+            int currentTime) {
 
         int n = ready.size();
+        if (n == 0) return;
 
-        if (n == 0) {
-            return;
-        }
+        int starvationThreshold = n * STARVATION_MULT;  // N × 5 ms
 
-        for (PCB p : ready) {
+        for (ProcessControlBlock p : ready) {
 
-            int waitingSoFar =
-                    currentTime
-                            - p.getReadyEnterTime();
+            int waitingSoFar = p.getWaitingTime();
 
-            // starvation condition
+            // Starvation detected
+            if (waitingSoFar > starvationThreshold) {
 
-            if (waitingSoFar > n * 5) {
-
-                if (!starvedProcesses.contains(
-                        p.getProcessId())) {
-
-                    starvedProcesses.add(
-                            p.getProcessId()
+                if (!Sharedresources.starvedProcesses.contains(p.getProcessId())) {
+                    Sharedresources.starvedProcesses.add(p.getProcessId());
+                    System.out.printf(
+                        "[Scheduler] ⚠ Process P%d detected as STARVED (waited %d ms, threshold=%d ms)%n",
+                        p.getProcessId(), waitingSoFar, starvationThreshold
                     );
                 }
 
-                // aging every 4 ms
-
-                if (currentTime % AGING_INTERVAL == 0
-                        && p.getPriority() > 1) {
-
-                    p.setPriority(
-                            p.getPriority() - 1
+                // Apply aging every AGING_INTERVAL ms
+                if (currentTime % AGING_INTERVAL == 0) {
+                    p.applyAging();   // decrements priority number by 1 (uses PCB's built-in method)
+                    System.out.printf(
+                        "[Scheduler] ↑ Aging applied to P%d — new priority: %d%n",
+                        p.getProcessId(), p.getPriority()
                     );
                 }
             }
         }
     }
 
-    // ================= PRIORITY SELECT =================
+    // =========================================================================
+    // HELPER — Select highest priority process (lowest number, tie → arrival)
+    // =========================================================================
 
-    private static PCB getHighestPriorityProcess(
-            ArrayList<PCB> ready) {
+    private static ProcessControlBlock getHighestPriorityProcess(
+            ArrayList<ProcessControlBlock> ready) {
 
-        PCB best = ready.get(0);
+        ProcessControlBlock best = ready.get(0);
 
-        for (PCB p : ready) {
-
-            if (p.getPriority()
-                    < best.getPriority()) {
-
+        for (ProcessControlBlock p : ready) {
+            if (p.getPriority() < best.getPriority()) {
                 best = p;
-
-            } else if (
-                    p.getPriority()
-                            == best.getPriority()
-
-                            &&
-
-                            p.getArrivalOrder()
-                                    < best.getArrivalOrder()
-            ) {
-
+            } else if (p.getPriority() == best.getPriority()
+                    && p.getArrivalTime() < best.getArrivalTime()) {
                 best = p;
             }
         }
@@ -381,141 +301,105 @@ public class CPUScheduler {
         return best;
     }
 
-    // ================= GANTT =================
+    // =========================================================================
+    // OUTPUT — Gantt Chart
+    // =========================================================================
 
-    private static void printGantt(
-            ArrayList<GanttEntry> gantt) {
+    private static void printGantt(ArrayList<GanttEntry> gantt) {
 
         System.out.println("\n===== Gantt Chart =====");
-
-        System.out.println(
-                "Time\tProcess\tStartBurst\tStopBurst"
-        );
+        System.out.printf("%-12s %-8s %-12s %-12s%n",
+                "Time", "Process", "StartBurst", "StopBurst");
+        System.out.println("─".repeat(48));
 
         for (GanttEntry g : gantt) {
-
-            System.out.println(
-
-                    g.getStartTime()
-                            + "-"
-                            + g.getEndTime()
-
-                            + "\tP"
-
-                            + g.getProcessId()
-
-                            + "\t"
-
-                            + g.getStartBurst()
-
-                            + "\t\t"
-
-                            + g.getStopBurst()
+            System.out.printf("%-12s %-8s %-12d %-12d%n",
+                    g.getStartTime() + "-" + g.getEndTime(),
+                    "P" + g.getProcessId(),
+                    g.getStartBurst(),
+                    g.getStopBurst()
             );
         }
     }
 
-    // ================= TABLE =================
+    // =========================================================================
+    // OUTPUT — Process Table
+    // =========================================================================
 
-    private static void printTable(
-            ArrayList<PCB> processes) {
+    private static void printTable(ArrayList<ProcessControlBlock> processes) {
 
-        System.out.println(
-                "\n===== Process Table ====="
-        );
+        System.out.println("\n===== Process Table =====");
+        System.out.printf("%-6s %-8s %-8s %-10s %-10s %-12s%n",
+                "PID", "Burst", "Start", "Finish", "Waiting", "Turnaround");
+        System.out.println("─".repeat(58));
 
-        System.out.println(
-                "PID\tBurst\tStart\tFinish\tWaiting\tTurnaround"
-        );
+        // Sort by process ID for clean output
+        processes.sort(Comparator.comparingInt(ProcessControlBlock::getProcessId));
 
-        processes.sort(
-                Comparator.comparingInt(
-                        PCB::getProcessId
-                )
-        );
-
-        for (PCB p : processes) {
-
-            System.out.println(
-
-                    "P"
-                            + p.getProcessId()
-
-                            + "\t"
-
-                            + p.getBurstTime()
-
-                            + "\t"
-
-                            + p.getStartTime()
-
-                            + "\t"
-
-                            + p.getTerminationTime()
-
-                            + "\t"
-
-                            + p.getWaitingTime()
-
-                            + "\t"
-
-                            + p.getTurnaroundTime()
+        for (ProcessControlBlock p : processes) {
+            System.out.printf("%-6s %-8d %-8d %-10d %-10d %-12d%n",
+                    "P" + p.getProcessId(),
+                    p.getBurstTime(),
+                    p.getStartTime(),
+                    p.getTerminationTime(),
+                    p.getWaitingTime(),
+                    p.getTurnaroundTime()
             );
         }
     }
 
-    // ================= AVERAGES =================
+    // =========================================================================
+    // OUTPUT — Average Metrics
+    // =========================================================================
 
-    private static void printAverages(
-            ArrayList<PCB> processes) {
+    private static void printAverages(ArrayList<ProcessControlBlock> processes) {
 
-        double totalWT = 0;
-
+        double totalWT  = 0;
         double totalTAT = 0;
 
-        for (PCB p : processes) {
-
-            totalWT += p.getWaitingTime();
-
+        for (ProcessControlBlock p : processes) {
+            totalWT  += p.getWaitingTime();
             totalTAT += p.getTurnaroundTime();
         }
 
-        System.out.printf(
-                "\nAverage Waiting Time: %.2f ms\n",
-                totalWT / processes.size()
-        );
-
-        System.out.printf(
-                "Average Turnaround Time: %.2f ms\n",
-                totalTAT / processes.size()
-        );
+        System.out.printf("%nAverage Waiting Time    : %.2f ms%n", totalWT  / processes.size());
+        System.out.printf("Average Turnaround Time : %.2f ms%n",   totalTAT / processes.size());
     }
 
-    // ================= COPY =================
+    // =========================================================================
+    // OUTPUT — Starvation Report (Priority only)
+    // =========================================================================
 
-    private static ArrayList<PCB> copyProcesses(
-            ArrayList<PCB> original) {
+    private static void printStarvation() {
 
-        ArrayList<PCB> copy =
-                new ArrayList<>();
+        System.out.println("\n===== Starvation Report =====");
 
-        for (PCB p : original) {
+        if (Sharedresources.starvedProcesses.isEmpty()) {
+            System.out.println("No processes suffered from starvation.");
+        } else {
+            for (int id : Sharedresources.starvedProcesses) {
+                System.out.println("Process P" + id + " suffered from starvation.");
+            }
+        }
+    }
 
-            PCB newPCB = new PCB(
+    // =========================================================================
+    // HELPER — Deep copy of process list (so original queue is not modified)
+    // =========================================================================
 
+    private static ArrayList<ProcessControlBlock> copyProcesses(
+            ArrayList<ProcessControlBlock> original) {
+
+        ArrayList<ProcessControlBlock> copy = new ArrayList<>();
+
+        for (ProcessControlBlock p : original) {
+
+            ProcessControlBlock newPCB = new ProcessControlBlock(
                     p.getProcessId(),
-
                     p.getBurstTime(),
-
-                    p.getPriority(),
-
+                    p.getOriginalPriority(),   // always copy the original priority
                     p.getMemoryRequired(),
-
-                    p.getArrivalOrder()
-            );
-
-            newPCB.setReadyEnterTime(
-                    p.getReadyEnterTime()
+                    p.getArrivalTime()
             );
 
             copy.add(newPCB);
