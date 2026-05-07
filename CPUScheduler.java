@@ -2,16 +2,17 @@ package com.mycompany.operatingsystemproject;
 
 import java.util.*;
 
+
 public class CPUScheduler {
 
     // ── Constants from SharedResources (project spec) ──
-    private static final int TIME_QUANTUM         = Sharedresources.TIME_QUANTUM;         
-    private static final int AGING_INTERVAL       = Sharedresources.AGING_INTERVAL;      
-    private static final int STARVATION_MULT      = Sharedresources.STARVATION_MULTIPLIER; 
+    private static final int TIME_QUANTUM         = Sharedresources.TIME_QUANTUM;         // 5 ms
+    private static final int AGING_INTERVAL       = Sharedresources.AGING_INTERVAL;       // 4 ms
+    private static final int STARVATION_MULT      = Sharedresources.STARVATION_MULTIPLIER; // 5
 
-
-    // MENU
- 
+    // =========================================================================
+    // MENU — Let user choose algorithm
+    // =========================================================================
 
     public static void showMenuAndRun(ArrayList<ProcessControlBlock> readyQueue) {
 
@@ -36,7 +37,9 @@ public class CPUScheduler {
         }
     }
 
+    // =========================================================================
     // ALGORITHM 1 — Shortest Job First (SJF)
+    // =========================================================================
 
     public static void runSJF(ArrayList<ProcessControlBlock> processes) {
 
@@ -85,7 +88,9 @@ public class CPUScheduler {
         printAverages(processes);
     }
 
+    // =========================================================================
     // ALGORITHM 2 — Round Robin (RR), quantum = 5 ms
+    // =========================================================================
 
     public static void runRoundRobin(ArrayList<ProcessControlBlock> processes) {
 
@@ -144,7 +149,9 @@ public class CPUScheduler {
         printAverages(processes);
     }
 
+    // =========================================================================
     // ALGORITHM 3 — Priority Scheduling (Non-Preemptive) + Starvation + Aging
+    // =========================================================================
 
     public static void runPriority(ArrayList<ProcessControlBlock> processes) {
 
@@ -161,8 +168,11 @@ public class CPUScheduler {
 
         while (!ready.isEmpty()) {
 
-            // Check starvation & apply aging before each dispatch
-            applyStarvationAndAging(ready, currentTime);
+          
+            int n = ready.size();
+
+            // Check starvation & apply aging using correct N
+            applyStarvationAndAging(ready, currentTime, n);
 
             // Pick highest priority process (lowest number), tie-break by arrival
             ProcessControlBlock selected = getHighestPriorityProcess(ready);
@@ -182,21 +192,21 @@ public class CPUScheduler {
                 currentTime++;
                 selected.decrementRemainingBurst();
 
-                // Increment waiting time for all processes still in ready queue
+                // Increment waiting time + timeInQueue for all in ready queue
                 for (ProcessControlBlock p : ready) {
                     p.incrementWaitingTime();
+                    p.incrementTimeInQueue();
                 }
 
                 // Apply aging check every AGING_INTERVAL ms
                 if (currentTime % AGING_INTERVAL == 0) {
-                    applyStarvationAndAging(ready, currentTime);
+                    applyStarvationAndAging(ready, currentTime, ready.size());
                 }
             }
 
             selected.setState(ProcessControlBlock.State.TERMINATED);
             selected.setTerminationTime(currentTime);
             selected.setTurnaroundTime(selected.getTerminationTime());        // arrival = 0
-            // waitingTime already accumulated above; recalculate cleanly:
             selected.setWaitingTime(selected.getTurnaroundTime() - selected.getBurstTime());
 
             gantt.add(new GanttEntry(
@@ -216,36 +226,41 @@ public class CPUScheduler {
         printStarvation();
     }
 
+    // =========================================================================
     // STARVATION DETECTION + AGING
+    // =========================================================================
 
    
     private static void applyStarvationAndAging(
             ArrayList<ProcessControlBlock> ready,
-            int currentTime) {
+            int currentTime,
+            int n) {
 
-        int n = ready.size();
         if (n == 0) return;
 
-        int starvationThreshold = n * STARVATION_MULT;  // N × 5 ms
+        // Starvation threshold: N × 5 ms (from project spec)
+        int starvationThreshold = n * STARVATION_MULT;
 
         for (ProcessControlBlock p : ready) {
 
-            int waitingSoFar = p.getWaitingTime();
+            // timeInQueue = consecutive ms spent waiting in ready queue
+            int waitingSoFar = p.getTimeInQueue();
 
-            // Starvation detected
+            // ── Starvation detected ──
             if (waitingSoFar > starvationThreshold) {
 
                 if (!Sharedresources.starvedProcesses.contains(p.getProcessId())) {
                     Sharedresources.starvedProcesses.add(p.getProcessId());
                     System.out.printf(
-                        "[Scheduler] ⚠ Process P%d detected as STARVED (waited %d ms, threshold=%d ms)%n",
-                        p.getProcessId(), waitingSoFar, starvationThreshold
+                        "[Scheduler] ⚠ Process P%d detected as STARVED " +
+                        "(waited %d ms, threshold=%d ms, N=%d)%n",
+                        p.getProcessId(), waitingSoFar, starvationThreshold, n
                     );
                 }
 
-                // Apply aging every AGING_INTERVAL ms
+                // ── Apply aging every AGING_INTERVAL ms ──
                 if (currentTime % AGING_INTERVAL == 0) {
-                    p.applyAging();   // decrements priority number by 1 (uses PCB's built-in method)
+                    p.applyAging(); // built-in: priority-- (min = 1)
                     System.out.printf(
                         "[Scheduler] ↑ Aging applied to P%d — new priority: %d%n",
                         p.getProcessId(), p.getPriority()
@@ -274,7 +289,9 @@ public class CPUScheduler {
         return best;
     }
 
+    // =========================================================================
     // OUTPUT — Gantt Chart
+    // =========================================================================
 
     private static void printGantt(ArrayList<GanttEntry> gantt) {
 
@@ -293,7 +310,9 @@ public class CPUScheduler {
         }
     }
 
+    // =========================================================================
     // OUTPUT — Process Table
+    // =========================================================================
 
     private static void printTable(ArrayList<ProcessControlBlock> processes) {
 
@@ -317,7 +336,9 @@ public class CPUScheduler {
         }
     }
 
+    // =========================================================================
     // OUTPUT — Average Metrics
+    // =========================================================================
 
     private static void printAverages(ArrayList<ProcessControlBlock> processes) {
 
@@ -333,7 +354,9 @@ public class CPUScheduler {
         System.out.printf("Average Turnaround Time : %.2f ms%n",   totalTAT / processes.size());
     }
 
+    // =========================================================================
     // OUTPUT — Starvation Report (Priority only)
+    // =========================================================================
 
     private static void printStarvation() {
 
@@ -348,7 +371,9 @@ public class CPUScheduler {
         }
     }
 
+    // =========================================================================
     // HELPER — Deep copy of process list (so original queue is not modified)
+    // =========================================================================
 
     private static ArrayList<ProcessControlBlock> copyProcesses(
             ArrayList<ProcessControlBlock> original) {
