@@ -1,4 +1,4 @@
-package CS227;
+package com.mycompany.operatingsystemproject;
 
 public class PCB {
 
