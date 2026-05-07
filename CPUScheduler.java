@@ -2,28 +2,16 @@ package com.mycompany.operatingsystemproject;
 
 import java.util.*;
 
-/**
- * CPUScheduler.java - Main Scheduling Logic
- *
- * Implements three CPU scheduling algorithms:
- *   1. Shortest Job First (SJF)
- *   2. Round Robin (RR)
- *   3. Priority Scheduling (Non-Preemptive) with Starvation & Aging
- *
- * Author  : Member 3 - CPU Scheduler
- * Course  : CSC 227 - Operating Systems
- * Project : Multithreaded CPU Scheduling Simulator
- */
 public class CPUScheduler {
 
     // ── Constants from SharedResources (project spec) ──
-    private static final int TIME_QUANTUM         = Sharedresources.TIME_QUANTUM;         // 5 ms
-    private static final int AGING_INTERVAL       = Sharedresources.AGING_INTERVAL;       // 4 ms
-    private static final int STARVATION_MULT      = Sharedresources.STARVATION_MULTIPLIER; // 5
+    private static final int TIME_QUANTUM         = Sharedresources.TIME_QUANTUM;         
+    private static final int AGING_INTERVAL       = Sharedresources.AGING_INTERVAL;      
+    private static final int STARVATION_MULT      = Sharedresources.STARVATION_MULTIPLIER; 
 
-    // =========================================================================
-    // MENU — Let user choose algorithm
-    // =========================================================================
+
+    // MENU
+ 
 
     public static void showMenuAndRun(ArrayList<ProcessControlBlock> readyQueue) {
 
@@ -48,9 +36,7 @@ public class CPUScheduler {
         }
     }
 
-    // =========================================================================
     // ALGORITHM 1 — Shortest Job First (SJF)
-    // =========================================================================
 
     public static void runSJF(ArrayList<ProcessControlBlock> processes) {
 
@@ -99,9 +85,7 @@ public class CPUScheduler {
         printAverages(processes);
     }
 
-    // =========================================================================
     // ALGORITHM 2 — Round Robin (RR), quantum = 5 ms
-    // =========================================================================
 
     public static void runRoundRobin(ArrayList<ProcessControlBlock> processes) {
 
@@ -160,9 +144,7 @@ public class CPUScheduler {
         printAverages(processes);
     }
 
-    // =========================================================================
     // ALGORITHM 3 — Priority Scheduling (Non-Preemptive) + Starvation + Aging
-    // =========================================================================
 
     public static void runPriority(ArrayList<ProcessControlBlock> processes) {
 
@@ -234,16 +216,9 @@ public class CPUScheduler {
         printStarvation();
     }
 
-    // =========================================================================
     // STARVATION DETECTION + AGING
-    // =========================================================================
 
-    /**
-     * Detects starved processes and applies aging.
-     * A process is starved if it has waited more than (N × 5) ms in the ready queue,
-     * where N = number of processes currently in the ready queue.
-     * Aging: decrease priority number by 1 every 4 ms.
-     */
+   
     private static void applyStarvationAndAging(
             ArrayList<ProcessControlBlock> ready,
             int currentTime) {
@@ -280,9 +255,7 @@ public class CPUScheduler {
         }
     }
 
-    // =========================================================================
     // HELPER — Select highest priority process (lowest number, tie → arrival)
-    // =========================================================================
 
     private static ProcessControlBlock getHighestPriorityProcess(
             ArrayList<ProcessControlBlock> ready) {
@@ -301,9 +274,7 @@ public class CPUScheduler {
         return best;
     }
 
-    // =========================================================================
     // OUTPUT — Gantt Chart
-    // =========================================================================
 
     private static void printGantt(ArrayList<GanttEntry> gantt) {
 
@@ -322,9 +293,7 @@ public class CPUScheduler {
         }
     }
 
-    // =========================================================================
     // OUTPUT — Process Table
-    // =========================================================================
 
     private static void printTable(ArrayList<ProcessControlBlock> processes) {
 
@@ -348,9 +317,7 @@ public class CPUScheduler {
         }
     }
 
-    // =========================================================================
     // OUTPUT — Average Metrics
-    // =========================================================================
 
     private static void printAverages(ArrayList<ProcessControlBlock> processes) {
 
@@ -366,9 +333,7 @@ public class CPUScheduler {
         System.out.printf("Average Turnaround Time : %.2f ms%n",   totalTAT / processes.size());
     }
 
-    // =========================================================================
     // OUTPUT — Starvation Report (Priority only)
-    // =========================================================================
 
     private static void printStarvation() {
 
@@ -383,9 +348,7 @@ public class CPUScheduler {
         }
     }
 
-    // =========================================================================
     // HELPER — Deep copy of process list (so original queue is not modified)
-    // =========================================================================
 
     private static ArrayList<ProcessControlBlock> copyProcesses(
             ArrayList<ProcessControlBlock> original) {
