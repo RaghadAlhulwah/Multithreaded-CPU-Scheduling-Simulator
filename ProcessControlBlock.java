@@ -1,20 +1,10 @@
+package operatingsystemproject;
 
-package com.mycompany.operatingsystemproject;
-/**
- * PCB.java - Process Control Block
- *
- * Represents all information needed to identify and manage a process
- * in the CPU scheduling simulation.
- *
- * Author  : Member 1 - Process & Input Manager
- * Course  : CSC 227 - Operating Systems
- * Project : Multithreaded CPU Scheduling Simulator
- */
 public class ProcessControlBlock {
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // Process States
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     public enum State {
         NEW,        // Just created, waiting in job queue
         READY,      // In ready queue, waiting for CPU
@@ -22,10 +12,10 @@ public class ProcessControlBlock {
         TERMINATED  // Finished execution
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // Core PCB Fields  (required by project specification)
-    // ─────────────────────────────────────────────────────────────────────────
-    private int    processId;        // Unique process identifier  (e.g. 1, 2, 3 …)
+    // -------------------------------------------------------------------------
+    private int    processId;        // Unique process identifier  (e.g. 1, 2, 3 ...)
     private State  state;            // Current state of the process
     private int    burstTime;        // Total CPU burst time (ms)
     private int    priority;         // Priority number 1-30  (1 = highest)
@@ -33,9 +23,9 @@ public class ProcessControlBlock {
     private int    waitingTime;      // Total time spent waiting in ready queue (ms)
     private int    turnaroundTime;   // Total time from arrival to completion (ms)
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // Extra Helper Fields  (added to support scheduling logic)
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     private int    arrivalTime;      // Time process entered job queue  (used for tie-breaking)
     private int    startTime;        // First time process got the CPU  (-1 = not started yet)
     private int    terminationTime;  // Time process finished execution (-1 = not finished)
@@ -43,16 +33,16 @@ public class ProcessControlBlock {
     private int    timeInQueue;      // Tracks consecutive ms spent in ready queue (for starvation)
     private int    originalPriority; // Stores the initial priority before any aging is applied
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // Constructor
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     /**
      * Constructs a PCB with data parsed from job.txt.
      *
      * @param processId      Unique process ID
      * @param burstTime      CPU burst time in ms
-     * @param priority       Priority number (1–30)
+     * @param priority       Priority number (1-30)
      * @param memoryRequired Memory required in MB
      * @param arrivalTime    Simulated arrival time (order in file, all start at time 0)
      */
@@ -67,7 +57,7 @@ public class ProcessControlBlock {
         // Initial state: process just created, not yet in ready queue
         this.state           = State.NEW;
 
-        // Scheduling metrics — set to 0 or -1 (unknown) until simulation runs
+        // Scheduling metrics - set to 0 or -1 (unknown) until simulation runs
         this.waitingTime      = 0;
         this.turnaroundTime   = 0;
         this.startTime        = -1;
@@ -80,9 +70,9 @@ public class ProcessControlBlock {
         this.timeInQueue     = 0;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // Getters
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     public int   getProcessId()       { return processId; }
     public State getState()           { return state; }
@@ -98,9 +88,9 @@ public class ProcessControlBlock {
     public int   getRemainingBurst()  { return remainingBurst; }
     public int   getTimeInQueue()     { return timeInQueue; }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // Setters
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     public void setState(State state)                  { this.state = state; }
     public void setPriority(int priority)              { this.priority = priority; }
@@ -111,9 +101,9 @@ public class ProcessControlBlock {
     public void setRemainingBurst(int remainingBurst)  { this.remainingBurst = remainingBurst; }
     public void setTimeInQueue(int timeInQueue)        { this.timeInQueue = timeInQueue; }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
     // Convenience Increment Methods  (used by scheduler each ms tick)
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     /** Increments waiting time by 1 ms. Called each tick a process is in the ready queue. */
     public void incrementWaitingTime()  { this.waitingTime++; }
@@ -144,9 +134,9 @@ public class ProcessControlBlock {
         return this.remainingBurst == 0;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // toString — useful for debugging and output
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
+    // toString - useful for debugging and output
+    // -------------------------------------------------------------------------
 
     @Override
     public String toString() {
