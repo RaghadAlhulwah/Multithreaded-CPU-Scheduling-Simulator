@@ -1,12 +1,15 @@
+package operatingsystemproject;
+
+
 import java.util.Queue;
 
 public class ReadyQueueLoader extends Thread {
-    private Queue<PCB> jobQueue;
-    private Queue<PCB> readyQueue;
+    private Queue<ProcessControlBlock> jobQueue;
+    private Queue<ProcessControlBlock> readyQueue;
     private MemoryManager memoryManager;
 
-    public ReadyQueueLoader(Queue<PCB> jobQueue,
-                            Queue<PCB> readyQueue,
+    public ReadyQueueLoader(Queue<ProcessControlBlock> jobQueue,
+                            Queue<ProcessControlBlock> readyQueue,
                             MemoryManager memoryManager) {
         this.jobQueue = jobQueue;
         this.readyQueue = readyQueue;
@@ -16,7 +19,7 @@ public class ReadyQueueLoader extends Thread {
     @Override
     public void run() {
         while (true) {
-            PCB process = null;
+            ProcessControlBlock process = null;
 
             synchronized (jobQueue) {
                 if (!jobQueue.isEmpty()) {
@@ -32,7 +35,7 @@ public class ReadyQueueLoader extends Thread {
                 }
 
                 memoryManager.allocateMemory(process);
-                process.setState("READY");
+                process.setState(ProcessControlBlock.State.READY);
 
                 synchronized (readyQueue) {
                     readyQueue.add(process);
