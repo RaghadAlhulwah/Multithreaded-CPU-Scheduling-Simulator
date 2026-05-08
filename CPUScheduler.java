@@ -2,7 +2,6 @@ package operatingsystemproject;
 
 import java.util.*;
 
-
 public class CPUScheduler {
 
     // -- Constants from SharedResources (project spec) --
