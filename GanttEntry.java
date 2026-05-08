@@ -1,4 +1,4 @@
-package com.mycompany.operatingsystemproject;
+package operatingsystemproject;
  
 
 public class GanttEntry {
@@ -9,9 +9,14 @@ public class GanttEntry {
     private int startBurst;
     private int stopBurst;
  
-    // Constructor
-    
- 
+public GanttEntry(int processId, int startTime, int endTime) {
+        this.processId = processId;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.startBurst = 0;
+        this.stopBurst = 0;
+
+    }
    
     public GanttEntry(int processId, int startTime, int endTime,
                       int startBurst, int stopBurst) {
