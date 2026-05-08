@@ -1,8 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-
 package operatingsystemproject;
 
 import java.util.List;
@@ -21,18 +16,21 @@ public class OutputManager {
         printProcessTable(processes);
         printMetrics(processes);
 
-        if (algorithmName.equalsIgnoreCase("Priority")) {
+        if (algorithmName.equalsIgnoreCase("Priority")
+                || algorithmName.equalsIgnoreCase("Priority Scheduling")) {
             printStarvedProcesses();
         }
     }
 
     public static void printGanttChart(List<GanttEntry> ganttChart) {
-        System.out.println("\nGantt Chart:");
+        System.out.println("\n===== Gantt Chart =====");
 
         if (ganttChart == null || ganttChart.isEmpty()) {
             System.out.println("No execution data available.");
             return;
         }
+
+        System.out.println("\nExecution Order:");
 
         for (GanttEntry entry : ganttChart) {
             System.out.print("| P" + entry.getProcessId() + " ");
@@ -44,17 +42,36 @@ public class OutputManager {
         }
 
         System.out.println(ganttChart.get(ganttChart.size() - 1).getEndTime());
+
+        System.out.println("\nDetailed Gantt Chart:");
+        System.out.printf("%-12s %-10s %-15s %-15s%n",
+                "Time", "Process", "Start Burst", "Stop Burst");
+        System.out.println("-------------------------------------------------------");
+
+        for (GanttEntry entry : ganttChart) {
+            System.out.printf("%-12s %-10s %-15d %-15d%n",
+                    entry.getStartTime() + "-" + entry.getEndTime(),
+                    "P" + entry.getProcessId(),
+                    entry.getStartBurst(),
+                    entry.getStopBurst());
+        }
     }
 
     public static void printProcessTable(List<ProcessControlBlock> processes) {
-        System.out.println("\nProcess Table:");
+        System.out.println("\n===== Process Table =====");
+
+        if (processes == null || processes.isEmpty()) {
+            System.out.println("No process data available.");
+            return;
+        }
 
         System.out.printf("%-12s %-12s %-12s %-15s %-15s %-15s%n",
                 "Process ID", "Burst", "Start", "Termination", "Waiting", "Turnaround");
+        System.out.println("--------------------------------------------------------------------------------");
 
         for (ProcessControlBlock p : processes) {
-            System.out.printf("%-12d %-12d %-12d %-15d %-15d %-15d%n",
-                    p.getProcessId(),
+            System.out.printf("%-12s %-12d %-12d %-15d %-15d %-15d%n",
+                    "P" + p.getProcessId(),
                     p.getBurstTime(),
                     p.getStartTime(),
                     p.getTerminationTime(),
@@ -64,6 +81,13 @@ public class OutputManager {
     }
 
     public static void printMetrics(List<ProcessControlBlock> processes) {
+        System.out.println("\n===== Performance Metrics =====");
+
+        if (processes == null || processes.isEmpty()) {
+            System.out.println("No processes available for metrics.");
+            return;
+        }
+
         double totalWaiting = 0;
         double totalTurnaround = 0;
 
@@ -72,18 +96,26 @@ public class OutputManager {
             totalTurnaround += p.getTurnaroundTime();
         }
 
-        double avgWaiting = totalWaiting / processes.size();
-        double avgTurnaround = totalTurnaround / processes.size();
+        double averageWaiting = totalWaiting / processes.size();
+        double averageTurnaround = totalTurnaround / processes.size();
 
-        System.out.println("\nPerformance Metrics:");
-        System.out.printf("Average Waiting Time: %.2f ms%n", avgWaiting);
-        System.out.printf("Average Turnaround Time: %.2f ms%n", avgTurnaround);
+        System.out.printf("Average Waiting Time    : %.2f ms%n", averageWaiting);
+        System.out.printf("Average Turnaround Time : %.2f ms%n", averageTurnaround);
     }
 
     public static void printStarvedProcesses() {
-        System.out.println("\nStarved Processes:");
+        System.out.println("\n===== Starvation Report =====");
 
-        if (Sharedresources.starvedProcesses.isEmpty()) {
+        if (Sharedresources.starvedProcesses == null || Sharedresources.starvedProcesses.isEmpty()) {
+            System.out.println("No processes suffered from starvation.");
+            return;
+        }
+
+        for (Integer processId : Sharedresources.starvedProcesses) {
+            System.out.println("Process P" + processId + " suffered from starvation.");
+        }
+    }
+}        if (Sharedresources.starvedProcesses.isEmpty()) {
             System.out.println("No starved processes.");
             return;
         }
