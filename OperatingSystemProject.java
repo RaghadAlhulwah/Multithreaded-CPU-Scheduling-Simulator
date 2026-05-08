@@ -1,6 +1,6 @@
+package operatingsystemproject;
 
-package com.mycompany.operatingsystemproject;
-
+import java.util.ArrayList;
 
 public class OperatingSystemProject {
 
@@ -10,22 +10,28 @@ public class OperatingSystemProject {
         System.out.println("           CPU Scheduling Simulator");
         System.out.println("==============================================\n");
  
-        // ── Launch Thread 1 (Member 1) ──
+        // -- Launch Thread 1 (Member 1) --
         Thread thread1 = new Thread(new Thread1(Sharedresources.jobQueue), "Thread-1-InputManager");
         thread1.start();
  
-        // ── Launch Thread 2 (Member 2) — to be implemented by Member 2 ──
-        // Thread thread2 = new Thread(new Thread2(SharedResources.jobQueue, SharedResources.readyQueue), "Thread-2-MemoryManager");
-        // thread2.start();
- 
-        // ── Wait for Thread 1 to finish reading the file ──
+        // -- Wait for Thread 1 to finish reading the file --
         thread1.join();
- 
-      CPUScheduler.showMenuAndRun(Sharedresources.readyQueue);
+        Sharedresources.inputFinished = true;
 
- 
-        // ── [Member 4] Print output: Gantt chart, table, metrics ──
-        // OutputManager.printResults(...);
+        // -- Launch Thread 2 (Member 2): move jobs from Job Queue to Ready Queue if memory allows --
+        MemoryManager memoryManager = new MemoryManager();
+        Thread thread2 = new ReadyQueueLoader(
+                Sharedresources.jobQueue,
+                Sharedresources.readyQueue,
+                memoryManager
+        );
+        thread2.setName("Thread-2-ReadyQueueLoader");
+        thread2.start();
+        thread2.join();
+
+        // -- Main thread (Member 3): run selected scheduler, then OutputManager prints results --
+        CPUScheduler.showMenuAndRun(new ArrayList<>(Sharedresources.readyQueue));
+
  
         System.out.println("\n[Main] Simulation complete.");
     }
