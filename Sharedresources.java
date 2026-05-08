@@ -1,5 +1,4 @@
-
-package com.mycompany.operatingsystemproject;
+package operatingsystemproject;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -8,16 +7,16 @@ import java.util.ArrayList;
 
 public class Sharedresources {
 
-    /** Total available main memory (MB) — fixed by project spec */
+    /** Total available main memory (MB) - fixed by project spec */
     public static final int TOTAL_MEMORY = 2048;
 
-    /** Round Robin time quantum (ms) — fixed by project spec */
+    /** Round Robin time quantum (ms) - fixed by project spec */
     public static final int TIME_QUANTUM = 5;
 
-    /** Priority scheduling starvation check multiplier — project spec: N × 5 ms */
+    /** Priority scheduling starvation check multiplier - project spec: N x 5 ms */
     public static final int STARVATION_MULTIPLIER = 5;
 
-    /** Aging interval — project spec: increase priority every 4 ms */
+    /** Aging interval - project spec: increase priority every 4 ms */
     public static final int AGING_INTERVAL = 4;
 
     public static final BlockingQueue<ProcessControlBlock> jobQueue   = new LinkedBlockingQueue<>();
