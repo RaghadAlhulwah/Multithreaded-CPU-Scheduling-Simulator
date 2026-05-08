@@ -1,17 +1,21 @@
-package com.mycompany.operatingsystemproject;
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package operatingsystemproject;
 
 import java.util.*;
 
 
 public class CPUScheduler {
 
-    // ── Constants from SharedResources (project spec) ──
+    // -- Constants from SharedResources (project spec) --
     private static final int TIME_QUANTUM         = Sharedresources.TIME_QUANTUM;         // 5 ms
     private static final int AGING_INTERVAL       = Sharedresources.AGING_INTERVAL;       // 4 ms
     private static final int STARVATION_MULT      = Sharedresources.STARVATION_MULTIPLIER; // 5
 
     // =========================================================================
-    // MENU — Let user choose algorithm
+    // MENU - Let user choose algorithm
     // =========================================================================
 
     public static void showMenuAndRun(ArrayList<ProcessControlBlock> readyQueue) {
@@ -38,7 +42,7 @@ public class CPUScheduler {
     }
 
     // =========================================================================
-    // ALGORITHM 1 — Shortest Job First (SJF)
+    // ALGORITHM 1 - Shortest Job First (SJF)
     // =========================================================================
 
     public static void runSJF(ArrayList<ProcessControlBlock> processes) {
@@ -83,13 +87,11 @@ public class CPUScheduler {
             ));
         }
 
-        printGantt(gantt);
-        printTable(processes);
-        printAverages(processes);
+        OutputManager.printResults(processes, gantt, "SJF");
     }
 
     // =========================================================================
-    // ALGORITHM 2 — Round Robin (RR), quantum = 5 ms
+    // ALGORITHM 2 - Round Robin (RR), quantum = 5 ms
     // =========================================================================
 
     public static void runRoundRobin(ArrayList<ProcessControlBlock> processes) {
@@ -131,7 +133,7 @@ public class CPUScheduler {
             ));
 
             if (p.getRemainingBurst() > 0) {
-                // Not done yet — go back to queue
+                // Not done yet - go back to queue
                 p.setState(ProcessControlBlock.State.READY);
                 queue.add(p);
 
@@ -144,13 +146,11 @@ public class CPUScheduler {
             }
         }
 
-        printGantt(gantt);
-        printTable(processes);
-        printAverages(processes);
+        OutputManager.printResults(processes, gantt, "Round Robin");
     }
 
     // =========================================================================
-    // ALGORITHM 3 — Priority Scheduling (Non-Preemptive) + Starvation + Aging
+    // ALGORITHM 3 - Priority Scheduling (Non-Preemptive) + Starvation + Aging
     // =========================================================================
 
     public static void runPriority(ArrayList<ProcessControlBlock> processes) {
@@ -220,10 +220,7 @@ public class CPUScheduler {
             completed.add(selected);
         }
 
-        printGantt(gantt);
-        printTable(completed);
-        printAverages(completed);
-        printStarvation();
+        OutputManager.printResults(completed, gantt, "Priority");
     }
 
     // =========================================================================
@@ -238,7 +235,7 @@ public class CPUScheduler {
 
         if (n == 0) return;
 
-        // Starvation threshold: N × 5 ms (from project spec)
+        // Starvation threshold: N x 5 ms (from project spec)
         int starvationThreshold = n * STARVATION_MULT;
 
         for (ProcessControlBlock p : ready) {
@@ -246,23 +243,23 @@ public class CPUScheduler {
             // timeInQueue = consecutive ms spent waiting in ready queue
             int waitingSoFar = p.getTimeInQueue();
 
-            // ── Starvation detected ──
+            // -- Starvation detected --
             if (waitingSoFar > starvationThreshold) {
 
                 if (!Sharedresources.starvedProcesses.contains(p.getProcessId())) {
                     Sharedresources.starvedProcesses.add(p.getProcessId());
                     System.out.printf(
-                        "[Scheduler] ⚠ Process P%d detected as STARVED " +
+                        "[Scheduler] WARNING: Process P%d detected as STARVED " +
                         "(waited %d ms, threshold=%d ms, N=%d)%n",
                         p.getProcessId(), waitingSoFar, starvationThreshold, n
                     );
                 }
 
-                // ── Apply aging every AGING_INTERVAL ms ──
+                // -- Apply aging every AGING_INTERVAL ms --
                 if (currentTime % AGING_INTERVAL == 0) {
                     p.applyAging(); // built-in: priority-- (min = 1)
                     System.out.printf(
-                        "[Scheduler] ↑ Aging applied to P%d — new priority: %d%n",
+                        "[Scheduler] Aging applied to P%d - new priority: %d%n",
                         p.getProcessId(), p.getPriority()
                     );
                 }
@@ -270,7 +267,7 @@ public class CPUScheduler {
         }
     }
 
-    // HELPER — Select highest priority process (lowest number, tie → arrival)
+    // HELPER - Select highest priority process (lowest number, tie -> arrival)
 
     private static ProcessControlBlock getHighestPriorityProcess(
             ArrayList<ProcessControlBlock> ready) {
@@ -290,7 +287,7 @@ public class CPUScheduler {
     }
 
     // =========================================================================
-    // OUTPUT — Gantt Chart
+    // OUTPUT - Gantt Chart
     // =========================================================================
 
     private static void printGantt(ArrayList<GanttEntry> gantt) {
@@ -298,7 +295,7 @@ public class CPUScheduler {
         System.out.println("\n===== Gantt Chart =====");
         System.out.printf("%-12s %-8s %-12s %-12s%n",
                 "Time", "Process", "StartBurst", "StopBurst");
-        System.out.println("─".repeat(48));
+        System.out.println("-".repeat(48));
 
         for (GanttEntry g : gantt) {
             System.out.printf("%-12s %-8s %-12d %-12d%n",
@@ -311,7 +308,7 @@ public class CPUScheduler {
     }
 
     // =========================================================================
-    // OUTPUT — Process Table
+    // OUTPUT - Process Table
     // =========================================================================
 
     private static void printTable(ArrayList<ProcessControlBlock> processes) {
@@ -319,7 +316,7 @@ public class CPUScheduler {
         System.out.println("\n===== Process Table =====");
         System.out.printf("%-6s %-8s %-8s %-10s %-10s %-12s%n",
                 "PID", "Burst", "Start", "Finish", "Waiting", "Turnaround");
-        System.out.println("─".repeat(58));
+        System.out.println("-".repeat(58));
 
         // Sort by process ID for clean output
         processes.sort(Comparator.comparingInt(ProcessControlBlock::getProcessId));
@@ -337,7 +334,7 @@ public class CPUScheduler {
     }
 
     // =========================================================================
-    // OUTPUT — Average Metrics
+    // OUTPUT - Average Metrics
     // =========================================================================
 
     private static void printAverages(ArrayList<ProcessControlBlock> processes) {
@@ -355,7 +352,7 @@ public class CPUScheduler {
     }
 
     // =========================================================================
-    // OUTPUT — Starvation Report (Priority only)
+    // OUTPUT - Starvation Report (Priority only)
     // =========================================================================
 
     private static void printStarvation() {
@@ -372,7 +369,7 @@ public class CPUScheduler {
     }
 
     // =========================================================================
-    // HELPER — Deep copy of process list (so original queue is not modified)
+    // HELPER - Deep copy of process list (so original queue is not modified)
     // =========================================================================
 
     private static ArrayList<ProcessControlBlock> copyProcesses(
